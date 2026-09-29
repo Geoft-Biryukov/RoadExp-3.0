@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadExp.DistanceMeasuringSystem\RoadExp.DistanceMeasuringSystem.csproj" />
+    <ProjectReference Include="..\RoadExp.GeometryMeasuringSystem\RoadExp.GeometryMeasuringSystem.csproj" />
+    <ProjectReference Include="..\RoadExp.GpsMeasuringSystem\RoadExp.GpsMeasuringSystem.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Common\RoadExp.Measurements.Common.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Core\RoadExp.Measurements.Core.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Data\RoadExp.Measurements.Data.csproj" />
+  </ItemGroup>
+
+</Project>

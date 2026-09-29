@@ -1,0 +1,164 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RoadExp.Viewer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="RoadExp.Viewer.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/app-icon.bmp"
+        Title="Просмотр зарегистрированных данных"
+        WindowStartupLocation="CenterScreen"
+        Width="1300"
+        Height="800"
+        WindowState="Maximized">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>   
+    
+    <DockPanel HorizontalAlignment="Stretch"
+               >
+	<Menu DockPanel.Dock="Top">
+		<MenuItem Header="Файл">
+			<MenuItem Header="Открыть..."
+					  Command="{Binding OpenFileCommand}"/>
+			
+			<Separator/>
+			<MenuItem Header="Выход"
+					  Command="{Binding ExitCommand}"/>
+		</MenuItem>			
+		
+	</Menu>
+    
+        <Grid HorizontalAlignment="Stretch"
+			  ShowGridLines="False">
+            <Grid.ColumnDefinitions >
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+            </Grid.RowDefinitions>
+        
+            <TabControl Grid.Column="1"
+						Grid.Row="0"
+						Grid.RowSpan="3">
+                <TabItem Header="ДПП">
+                    <Grid ShowGridLines="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>                    
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"                                
+                                   Margin="20"
+                                   Text="{Binding DistanceFileName}"/>
+                        <DataGrid Grid.Column="0" Grid.Row="1"
+                                      Margin="20"
+                                      AutoGenerateColumns="True"
+                                      ItemsSource="{Binding DistanceDataCollection}"
+                                      IsReadOnly="True"
+                                      ColumnWidth="Auto"
+                                      VerticalScrollBarVisibility="Visible"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="GPS">
+                    <Grid ShowGridLines="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"                                
+                                   Margin="20"
+                                   Text="{Binding GpsFileName}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"                                
+                                   Margin="20">
+                                   GGA Data
+                        </TextBlock>
+
+                            <DataGrid Grid.Column="0" Grid.Row="2"
+                                      Margin="20"
+                                      AutoGenerateColumns="True"
+                                      ItemsSource="{Binding GpsGgaDataCollection}"
+                                      IsReadOnly="True"
+                                      ColumnWidth="Auto"
+                                      VerticalScrollBarVisibility="Visible"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+
+                            </DataGrid>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="1"                                
+                                   Margin="20">
+                                   RMC Data
+                        </TextBlock>
+
+                            <DataGrid Grid.Column="1" Grid.Row="2"
+                                      Margin="20"
+                                      AutoGenerateColumns="True"
+                                      ItemsSource="{Binding GpsRmcDataCollection}"
+                                      IsReadOnly="True"
+                                      ColumnWidth="Auto"
+                                      VerticalScrollBarVisibility="Visible"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+
+                            </DataGrid>
+                        
+                </Grid>
+                </TabItem>
+                <TabItem Header="Геометрия">
+                    <Grid ShowGridLines="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>                    
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"                                
+                                   Margin="20"
+                                   Text="{Binding GeometryFileName}"/>
+                        <DataGrid Grid.Column="0" Grid.Row="1"
+                                      Margin="20"
+                                      AutoGenerateColumns="True"
+                                      ItemsSource="{Binding GeometryDataCollection}"
+                                      IsReadOnly="True"
+                                      ColumnWidth="Auto"
+                                      VerticalScrollBarVisibility="Visible"
+                                      GridLinesVisibility="All"
+                                      BorderThickness="1"
+                                      BorderBrush="Gray">
+
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+    </Grid>
+</DockPanel>
+
+</Window>

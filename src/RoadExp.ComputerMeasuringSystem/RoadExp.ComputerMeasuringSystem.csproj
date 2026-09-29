@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Management" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadExp.Auxiliaries\RoadExp.Auxiliaries.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Common\RoadExp.Measurements.Common.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Core\RoadExp.Measurements.Core.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Data\RoadExp.Measurements.Data.csproj" />
+  </ItemGroup>
+
+</Project>

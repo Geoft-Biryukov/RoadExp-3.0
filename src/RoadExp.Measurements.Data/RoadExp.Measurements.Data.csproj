@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadExp.Common\RoadExp.Common.csproj" />
+    <ProjectReference Include="..\RoadExp.Measurements.Core\RoadExp.Measurements.Core.csproj" />
+    <ProjectReference Include="..\RoadExp.Utils\RoadExp.Utils.csproj" />
+  </ItemGroup>
+
+</Project>

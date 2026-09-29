@@ -1,0 +1,93 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RoadExp.Presentation.Avalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:views="clr-namespace:RoadExp.Presentation.Avalonia.Views"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="RoadExp.Presentation.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/road-icon1.bmp"
+        Title="RoadExp 3 test version"
+		WindowState="Maximized">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+		
+		<Menu DockPanel.Dock="Top" Margin="5">
+			<MenuItem Header="Файл">
+				<MenuItem Header="Открыть..." Name="OpenFile"></MenuItem>
+				<MenuItem Header="Выход"></MenuItem>
+			</MenuItem>
+
+			<MenuItem Header="Настройки">
+				<MenuItem Header="Тема">
+					<MenuItem Header="Тёмная" />
+					<MenuItem Header="Светлая" />
+				</MenuItem>				
+			</MenuItem>
+
+			<MenuItem Header="Справка">
+				<MenuItem Header="О программе..."></MenuItem>				
+			</MenuItem>
+		</Menu>
+	
+	<Grid
+		DockPanel.Dock="Top">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="200"/>
+		</Grid.RowDefinitions>
+
+		<SplitView IsPaneOpen="{Binding IsPaneOpen}"
+		Grid.Row="0"
+		DockPanel.Dock="Top"
+		OpenPaneLength="300"
+		CompactPaneLength="48"
+		DisplayMode="CompactInline"
+		Background="Black"
+		PaneBackground="#1e1e1e">
+		<SplitView.Pane>
+			<StackPanel 
+				Spacing="5"
+				Margin="5">
+				<Button Command="{Binding TriggerPane}">
+				<PathIcon Data="{StaticResource LineHorizontal3Regular}"></PathIcon>
+				</Button>
+				<ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+					<ListBox.ItemTemplate>
+						<DataTemplate DataType="{x:Type vm:ListItemTemplate}">
+							<StackPanel Spacing="15" Orientation="Horizontal">
+								<PathIcon Data="{Binding ListItemIcon}"/>
+								<TextBlock Text="{Binding Label}" />
+							</StackPanel>							
+						</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</StackPanel>
+				</SplitView.Pane>
+				
+			<SplitView.Content>
+				<Border CornerRadius="12"
+						Background="#2d2d2d"
+						DockPanel.Dock="Top">
+					<TransitioningContentControl Content="{Binding CurrentPage}"/>
+				</Border>
+			</SplitView.Content>
+			</SplitView>
+			
+			<ListBox Grid.Row="1" 					
+					x:Name="UserConsole" 
+					Background="Black" 
+					Foreground="White" 
+					FontFamily="Consolas" 
+					/>
+		</Grid>
+	</DockPanel>
+
+</Window>

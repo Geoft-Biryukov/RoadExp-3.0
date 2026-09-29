@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:RoadExp.Presentation.Avalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="850"
+             x:Class="RoadExp.Presentation.Avalonia.Views.GeometryPageView"
+             x:DataType="vm:GeometryPageViewModel">
+ <StackPanel>
+    <TextBlock FontSize="20"
+                FontStyle="Oblique"
+                TextAlignment="Left"
+                Margin="350 20 0 50">
+            Геометрия
+    </TextBlock>
+<Grid>
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="450"/>
+        <ColumnDefinition Width="550"/>
+    </Grid.ColumnDefinitions>
+    <StackPanel Grid.Column="0">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="220"/>
+            </Grid.ColumnDefinitions>   
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions> 
+
+            <!-- Latitude -->
+            <TextBlock Grid.Column="0" 
+                        Grid.Row="0"
+                        Padding="20 10 0 0"
+                        VerticalAlignment="Center">
+                Широта, гр:
+            </TextBlock>
+            <TextBox Grid.Column="1"
+                     Grid.Row="0"
+                     Margin="0 10 0 0"
+                     IsReadOnly="True"
+                     Text="{Binding Latitude}"/>
+
+            <!-- Longitude -->
+            <TextBlock Grid.Column="0"
+                       Grid.Row="1"
+                       Padding="20 10 0 0"
+                        VerticalAlignment="Center">
+                Долгота, гр:
+            </TextBlock>
+
+            <TextBox Grid.Column="1"
+                     Grid.Row="1"
+                     Margin="0 10 0 0"
+                     IsReadOnly="True"
+                     Text="{Binding Longitude}"/>
+
+            <!-- Altitude -->
+            <TextBlock Grid.Column="0"
+                       Grid.Row="2"
+                       Padding="20 10 0 0"
+                        VerticalAlignment="Center">
+                Высота, м:
+            </TextBlock>
+
+            <TextBox Grid.Column="1"
+                     Grid.Row="2"
+                     Margin="0 10 0 0"
+                     IsReadOnly="True"
+                     Text="{Binding Altitude}"/>  
+
+
+            
+
+        </Grid>
+    </StackPanel>
+
+
+
+    <StackPanel Grid.Column="1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="220"/>
+            </Grid.ColumnDefinitions>   
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions> 
+
+            <!-- LongitudinalGradient -->
+            <TextBlock Grid.Column="0" 
+                        Grid.Row="0"
+                        Padding="20 10 0 0"
+                        VerticalAlignment="Center">
+                Продольный уклон, ‰:
+            </TextBlock>
+            <TextBox Grid.Column="1"
+                     Grid.Row="0"
+                     Margin="0 10 0 0"
+                     IsReadOnly="True"
+                     Text="{Binding LongitudinalGradient}"/>
+
+            <!-- TransverseSlope -->
+            <TextBlock Grid.Column="0"
+                       Grid.Row="1"
+                       Padding="20 10 0 0"
+                        VerticalAlignment="Center">
+                Поперечный уклон, ‰:
+            </TextBlock>
+
+            <TextBox Grid.Column="1"
+                     Grid.Row="1"
+                     Margin="0 10 0 0"
+                     IsReadOnly="True"
+                     Text="{Binding TransverseSlope}"/>
+
+            <!-- Course -->
+            <TextBlock Grid.Column="0"
+                       Grid.Row="2"
+                       Padding="20 10 0 0"
+                        VerticalAlignment="Center">
+                Курс, гр:
+            </TextBlock>
+
+            <TextBox Grid.Column="1"
+                     Grid.Row="2"
+                     Margin="0 10 0 0"
+                     IsReadOnly="True"
+                     Text="{Binding Course}"/>  
+
+
+            
+
+        </Grid>
+    </StackPanel>
+</Grid>
+<Grid>
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="450"/>
+        <ColumnDefinition Width="450"/>
+    </Grid.ColumnDefinitions>
+    <StackPanel Grid.Column="0"
+                Orientation="Horizontal" Margin="20 50 0 0">
+        <TextBlock VerticalAlignment="Center">COM-порт</TextBlock>
+        <ComboBox Margin="60 0 0 0"
+                 Width="220"
+                 ItemsSource="{Binding PortNames}"
+                 SelectedIndex="{Binding PortNameIndex}"/>
+    </StackPanel>
+
+    <StackPanel Grid.Column="1"
+                Orientation="Horizontal" Margin="20 50 0 0">
+        <TextBlock VerticalAlignment="Center">Скорость</TextBlock>
+        <ComboBox Margin="163 0 0 0"
+                 Width="220"
+                 ItemsSource="{Binding BaudRates}"
+                 SelectedIndex="{Binding BaudRateIndex}"/>
+    </StackPanel>
+</Grid>
+<DockPanel Height="300">
+    <StackPanel Orientation="Horizontal"
+                DockPanel.Dock="Top"
+                Margin="20 50 0 0">
+        <CheckBox IsChecked="{Binding IsEmulationMode}">Эмуляция</CheckBox>
+    </StackPanel>
+    <StackPanel Orientation="Horizontal"
+                DockPanel.Dock="Bottom">
+        <Button Command="{Binding Update}"
+                Margin="20 0 0 0">Update</Button>
+        <Button Command="{Binding Initialize}"
+                Margin="20 0 0 0">Initialize</Button>
+        <Button Command="{Binding Start}"
+                Margin="20 0 0 0">Start</Button>
+        <Button Command="{Binding Stop}"
+                Margin="20 0 0 0">Stop</Button>
+        <Button Command="{Binding Deinitialize}"
+                Margin="20 0 0 0">Deinitialize</Button>
+    </StackPanel>
+</DockPanel>
+</StackPanel>
+</UserControl>

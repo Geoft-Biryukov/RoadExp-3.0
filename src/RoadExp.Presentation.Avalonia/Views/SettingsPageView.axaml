@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:RoadExp.Presentation.Avalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="RoadExp.Presentation.Avalonia.Views.SettingsPageView"
+             x:DataType="vm:SettingsPageViewModel">
+  <StackPanel>
+    <TextBlock FontSize="20"
+            FontStyle="Oblique"
+            TextAlignment="Left"
+            Margin="350 20 0 50">
+        Основные настройки
+    </TextBlock>
+    <Grid>
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="550"/>
+        <ColumnDefinition Width="450"/>
+        <ColumnDefinition Width="450"/>
+    </Grid.ColumnDefinitions>
+      <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0"
+                   Margin="20 0 0 0">
+          Путь для сохранения файлов
+        </TextBlock>
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="10 10 0 0">
+          <TextBox Width="400" Text="{Binding CurrentPath}"
+                   IsReadOnly="True"
+                   ToolTip.Tip="{Binding CurrentPath}"/>
+
+          <Button Margin="20 0 0 0"
+                  Width="30"
+                  HorizontalAlignment="Center"
+                  Command="{Binding ChooseDirectoryAsync}">
+                ...
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </StackPanel>
+</UserControl>

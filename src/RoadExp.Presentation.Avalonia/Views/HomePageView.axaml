@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:RoadExp.Presentation.Avalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="RoadExp.Presentation.Avalonia.Views.HomePageView"
+             x:DataType="vm:HomePageViewModel">
+  
+  <StackPanel>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="100"/>
+        <ColumnDefinition Width="100"/>
+        <ColumnDefinition Width="200"/>
+      </Grid.ColumnDefinitions>
+
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <Button Margin="0 20 0 0"
+              Grid.Column="0"
+              Grid.Row="0"
+              HorizontalAlignment="Center"
+              Command="{Binding Initialize}"
+              IsEnabled="{Binding CanInitialize}">
+        Initialize
+      </Button>
+
+      <Button Margin="0 20 0 0"
+              Grid.Column="1"
+              Grid.Row="0"
+              HorizontalAlignment="Center"
+              Command="{Binding Deinitialize}"
+              IsEnabled="{Binding CanDeinitialize}">
+        Denitialize
+      </Button>
+
+      <ProgressBar Grid.Column="2"
+                   Margin="40 20 0 0"
+                   Height="30"
+                   IsIndeterminate="{Binding IsInitializing}"
+                   ShowProgressText="False"
+                   Foreground="#114344"/>
+
+      <Button Margin="0 20 0 0"
+              Grid.Column="0"
+              Grid.Row="1"
+              HorizontalAlignment="Center"
+              Command="{Binding StartAcquisition}"
+              IsEnabled="{Binding CanStart}">
+        Start 
+      </Button>
+
+      <Button Margin="0 20 0 0"
+              Grid.Column="1"
+              Grid.Row="1"
+              HorizontalAlignment="Center"
+              Command="{Binding StopAcquisition}"
+              IsEnabled="{Binding CanStop}">
+        Stop
+      </Button>
+      
+    </Grid>
+  </StackPanel>
+
+</UserControl>
