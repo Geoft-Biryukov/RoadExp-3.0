@@ -74,13 +74,7 @@ namespace RoadExp.Presentation.Avalonia.ViewModels
 
         [ObservableProperty]
         private bool _isEmulationMode;
-      
-
-        public async Task Update()
-        {
-            _manager.UpdateParameters();
-        }       
-
+            
         public async Task Initialize()
         {
             await _manager.InitializeAsync();

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RoadExp.GeometryMeasuringSystem;
+using RoadExp.GeometryMeasuringSystem.MeasuringSystem;
 using RoadExp.GpsMeasuringSystem;
 using RoadExp.Measurements.Core;
 using RoadExp.Measurements.Data.GeometryMeasuringSystem.Data;
@@ -141,8 +142,7 @@ namespace RoadExp.Presentation
             var tasks = new List<Task>();
 
             foreach (var manager in _managers)
-            {                
-                manager.MeasuringSystem.OpenFile();
+            {                               
                 manager.MeasuringSystem.StartAcquisition();
             }            
         }

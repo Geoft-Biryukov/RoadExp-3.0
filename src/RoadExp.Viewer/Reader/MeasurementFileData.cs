@@ -16,5 +16,6 @@ namespace RoadExp.Viewer.Reader
         public CommonFileHeader FileHeader { get; }
         public byte[] Metadata { get; }
         public SortedList<long, MeasurementBatch> Batches { get; }
+        public bool IsComplete { get; set; }
     }
 }

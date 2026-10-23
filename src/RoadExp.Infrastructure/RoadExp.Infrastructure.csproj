@@ -18,6 +18,7 @@
     <ProjectReference Include="..\RoadExp.Measurements.Common\RoadExp.Measurements.Common.csproj" />
     <ProjectReference Include="..\RoadExp.Measurements.Core\RoadExp.Measurements.Core.csproj" />
     <ProjectReference Include="..\RoadExp.Measurements.Data\RoadExp.Measurements.Data.csproj" />
+    <ProjectReference Include="..\RoadExp.VideoRecordingSystem\RoadExp.VideoRecordingSystem.csproj" />
   </ItemGroup>
 
 </Project>

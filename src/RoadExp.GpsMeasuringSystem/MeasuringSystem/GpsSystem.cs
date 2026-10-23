@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using RoadExp.Auxiliaries.Logger;
 using RoadExp.Measurements.Core;
+using RoadExp.Measurements.Core.DeviceComponents;
 using RoadExp.Measurements.Core.Serialization;
+using RoadExp.Measurements.Data;
 using RoadExp.Measurements.Data.GpsMeasuringSystem.Data;
-using System.Text;
 
 
 namespace RoadExp.GpsMeasuringSystem
@@ -13,31 +14,31 @@ namespace RoadExp.GpsMeasuringSystem
     /// </summary>
     public class GpsSystem : IMeasuringSystem<GpsDataItem>
     {
-        #region private fields
-        private readonly IDeviceAdapterFactory<GpsSystemSettings> _adapterFactory;
-        private readonly IDevice _device;
+        #region private fields        
+        private IDevice _device;
+        private readonly IDevicesFactory<GpsSystemSettings> _devicesFactory;
         private readonly GpsSystemSettings _settings;
         private readonly IByteArrayParser<GpsDataItem> _parser;
+        private readonly IFileHeaderFactory _headerFactory;
         private readonly ILogger<GpsSystem> _logger;
         private CancellationTokenSource _listenerCts;
         private Task _listener;
+        private bool _isAcquisitionStarted = false;
         #endregion
 
         #region constructor
         public GpsSystem(
-            IDeviceAdapterFactory<GpsSystemSettings> adapterFactory,
-            IDevice device,
+            IDevicesFactory<GpsSystemSettings> devicesFactory,
             GpsSystemSettings settings,
             IByteArrayParser<GpsDataItem> parser,
+            IFileHeaderFactory headerFactory,
             ILogger<GpsSystem> logger)
-        {
-            _adapterFactory = adapterFactory ?? throw new ArgumentNullException(nameof(adapterFactory));
-            _device = device ?? throw new ArgumentNullException(nameof(device));
+        {            
+            _devicesFactory = devicesFactory ?? throw new ArgumentNullException(nameof(devicesFactory));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _parser = parser ?? throw new ArgumentNullException(nameof(parser));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            _device.ErrorOccurred += DeviceErrorOccurred;
+            _headerFactory = headerFactory ?? throw new ArgumentNullException(nameof(headerFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));            
 
             _logger.GpsInformation("Gps-система успешно создана");
         }
@@ -49,8 +50,7 @@ namespace RoadExp.GpsMeasuringSystem
         public event EventHandler<DataEventArgs<GpsDataItem>> DataReceived;
         #endregion
 
-        #region properties
-        public GpsDataItem HotValue { get; private set; }
+        #region properties       
 
         public bool IsActive { get; private set; } = false;
 
@@ -60,7 +60,30 @@ namespace RoadExp.GpsMeasuringSystem
         #region public methods
         public async Task InitializeAsync()
         {
-            if (IsActive) return;
+            if(IsActive)
+            {
+                _logger.LogWarning("Попытка повторной инициализации GPS системы");
+                return;
+            }
+
+            _logger.LogInformation("Выполняется инициализация GPS системы");
+
+            var devices = _devicesFactory.CreateDevices(_settings);
+
+            if (devices.Count > 1)
+            {
+                throw new NotSupportedException("GPS-система не поддерживает работу со многими Device'ами");
+            }
+
+            if (devices == null || devices.Count == 0)
+            {
+                _logger.LogError("Не удалось создать Device в GPS-системе");
+                ErrorOccurred?.Invoke(this, new("Не удалось инициализировать систему GPS"));
+                return;
+            }
+
+            _device = devices.First();
+            _device.ErrorOccurred += DeviceErrorOccurred;
 
             await _device.InitializeAsync();
             IsActive = true;
@@ -69,12 +92,18 @@ namespace RoadExp.GpsMeasuringSystem
 
             _listener = DataChannelListener(_listenerCts.Token);
 
-            _logger.GpsInformation("Инициализация Gps-системы прошла успешно");
+            _logger.GpsInformation("Инициализация Gps-системы успешно выполнена");
         }
 
         public void Deinitialize()
         {
-            if (!IsActive) return;
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка деинициализации GPS-системы, инициализация которой не выполнялась");
+                return;
+            }
+
+            _logger.LogInformation("Выполняется деинициализация GPS-системы");
 
             if (_listenerCts != null)
             {
@@ -99,54 +128,66 @@ namespace RoadExp.GpsMeasuringSystem
 
             _device?.Deinitialize();
             IsActive = false;
+
+            _logger.LogInformation("Деинициализация GPS-системы успешно выполнена");
         }
 
         public void Dispose()
         {
             Deinitialize();
-            Task.Run(async () => await _device.DisposeAsync());
-        }
 
-        public void OpenFile()
-        {
-            var fileHeader = CreateFileHeader(_settings);
-            var fileName = Path.Combine(_settings.Path, _settings.FileName);
-            _device.OpenFile(fileName, fileHeader, metadata: Array.Empty<byte>());
+            if(_device != null) 
+                Task.Run(async () => await _device.DisposeAsync());
         }
-
+       
         public void StartAcquisition()
         {
-            _device.StartAcquisition();
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка начать сбор данных ДПП системы, инициализация которой не выполнялась");
+                return;
+            }
+
+            if (_isAcquisitionStarted)
+            {
+                _logger.LogWarning("Повторная попытка начать сбор данных ДПП системы");
+                return;
+            }
+
+            var fileHeader = _headerFactory.CreateFileHeader(SystemIds.Gps.ToUint16(), 0);
+            var fileName = Path.Combine(_settings.Path, _settings.FileName);
+
+            var dataFileInfo = new DataFileParameters(fileName, fileHeader, Array.Empty<byte>());
+
+            _device.StartAcquisition(dataFileInfo);
+            _isAcquisitionStarted = true;
+
+            _logger.LogInformation("Сбор данных GPS-системы успешно запущен");
         }
 
         public void StopAcquisition()
         {
-            _device.StopAcquisition();
-        }
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка остановить сбор данных GPS-системы, инициализация которой не выполнялась");
+                return;
+            }
 
-        public void UpdateAdapter()
-        {
-            var adapter = _adapterFactory.Create(_settings);
-            _device.UpdateAdapter(adapter);
-        }
+            if (!_isAcquisitionStarted)
+            {
+                _logger.LogWarning("Попытка остановить сбор данных GPS-системы, который не начинался");
+                return;
+            }
+
+            _device.StopAcquisition();
+            _isAcquisitionStarted = false;
+
+            _logger.LogInformation("Сбор данных GPS-системы успешно остановлен");
+        }       
 
         #endregion
 
-        #region private methods
-        private CommonFileHeader CreateFileHeader(GpsSystemSettings settings)
-        {
-            return new CommonFileHeader
-            {
-                UniqueCode = Encoding.ASCII.GetBytes("ROAD"),
-                Version = 1,
-                TimeUtc = DateTime.UtcNow.Ticks,
-                SystemId = 2,
-                MetadataSize = 0,
-
-            };
-        }
-
-
+        #region private methods       
         private async Task DataChannelListener(CancellationToken token)
         {
             await foreach (var item in _device.DataChannel.ReadAllAsync(token).ConfigureAwait(false))
@@ -157,9 +198,7 @@ namespace RoadExp.GpsMeasuringSystem
 
         private void DeviceDataProcess(in MeasurementBatch batch)
         {            
-            var data = _parser.Parse(batch);
-
-            HotValue = data;
+            var data = _parser.Parse(batch);            
 
             var eventArgs = new DataEventArgs<GpsDataItem>(data);
 

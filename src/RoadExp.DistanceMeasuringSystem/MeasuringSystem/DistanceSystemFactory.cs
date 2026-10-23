@@ -1,30 +1,37 @@
 ﻿using Microsoft.Extensions.Logging;
-using RoadExp.DistanceMeasuringSystem.DeviceComponents;
-using RoadExp.Measurements.Common;
 using RoadExp.Measurements.Core;
+using RoadExp.Measurements.Core.DeviceComponents;
+using RoadExp.Measurements.Core.Serialization;
 using RoadExp.Measurements.Data.DistanceMeasuringSystem;
 
 namespace RoadExp.DistanceMeasuringSystem.MeasuringSystem
 {
     public class DistanceSystemFactory : IMeasuringSystemsFactory<DistanceSystemSettings, DistanceDataItem>
     {
-        private const int _bufferSize = 128;
-        private readonly ILogger _logger;
-        private readonly IDeviceAdapterFactory<DistanceSystemSettings> _adapterFactory;
+        #region private fields
+        private readonly IDevicesFactory<DistanceSystemSettings> _devicesFactory;        
         private readonly IByteArrayParser<DistanceDataItem> _parser;
+        private readonly IFileHeaderFactory _headerFactory;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger _logger;
+        #endregion
 
+        #region constructor
         public DistanceSystemFactory(
-            IDeviceAdapterFactory<DistanceSystemSettings> adapterFactory,
+            IDevicesFactory<DistanceSystemSettings> devicesFactory,           
             IByteArrayParser<DistanceDataItem> parser,
+            IFileHeaderFactory headerFactory,
             ILoggerFactory loggerFactory)
         {
-            _adapterFactory = adapterFactory;
-            _parser = parser;
-            _loggerFactory = loggerFactory;
+            _devicesFactory = devicesFactory;           
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+            _headerFactory = headerFactory ?? throw new ArgumentNullException(nameof(headerFactory));
+            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
             _logger = _loggerFactory.CreateLogger<DistanceSystemFactory>();
         }
+        #endregion
 
+        #region public methods
         /// <summary>
         /// Создает измерительную систему ДПП
         /// и настраивает её в соответствии с переданными
@@ -34,22 +41,12 @@ namespace RoadExp.DistanceMeasuringSystem.MeasuringSystem
         /// <returns>Настроенная измерительная система ДПП</returns>
         public IMeasuringSystem<DistanceDataItem> CreateMeasuringSystem(DistanceSystemSettings settings)
         {
-            _logger.LogInformation("Создается и настраивается система ДПП");
+            _logger.LogInformation("Создается и настраивается система ДПП");            
+            
+            var logger = _loggerFactory.CreateLogger<DistanceSystem>();
 
-            var adapter = _adapterFactory.Create(settings);
-
-            var storage = CreateDataStorage(settings);
-            var device = new DistanceDevice(adapter, storage, _loggerFactory.CreateLogger<DistanceDevice>());
-
-            return new DistanceSystem(_adapterFactory, device, settings, _parser, _loggerFactory.CreateLogger<DistanceSystem>());
+            return new DistanceSystem(_devicesFactory, settings, _parser, _headerFactory, logger);
         }
-
-        private IDataStorage CreateDataStorage(DistanceSystemSettings settings)
-        {
-            var writer = new DataWriter(_loggerFactory.CreateLogger<DataWriter>());
-            var storage = new DataStorage(_bufferSize, writer, _loggerFactory.CreateLogger<DataStorage>());
-
-            return storage;
-        }
+        #endregion
     }
 }

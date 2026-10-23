@@ -86,8 +86,7 @@ namespace RoadExp.GeometryMeasuringSystem
 
         public void StartAcquisition(string filePath)
         {                        
-            _settings.Path = filePath;
-            _system.OpenFile();
+            _settings.Path = filePath;            
 
             _logger.LogInformation("Старт записи в файл geometry");
                        
@@ -103,7 +102,7 @@ namespace RoadExp.GeometryMeasuringSystem
 
         public void UpdateParameters()
         {
-            _system.UpdateAdapter();
+            
         }
 
         public void Dispose()

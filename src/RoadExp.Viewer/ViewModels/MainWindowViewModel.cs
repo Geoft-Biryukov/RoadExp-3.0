@@ -19,7 +19,8 @@ namespace RoadExp.Viewer.ViewModels
     public partial class MainWindowViewModel : ViewModelBase
     {
         private readonly MainModel _model;
-        
+        private const int _rowsOnPage = 20;
+
         public MainWindowViewModel(MainModel model)
         {
             _model = model;
@@ -28,11 +29,32 @@ namespace RoadExp.Viewer.ViewModels
             GpsRmcDataCollection = new ObservableCollection<GpsRmcDataViewModel>();
             DistanceDataCollection  = new ObservableCollection<DistanceDataViewModel>();
             GeometryDataCollection = new ObservableCollection<GeometryDataViewModel>();
+
+            PropertyChanged += MainWindowViewModelPropertyChanged;
+        }
+
+        private void MainWindowViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if(e.PropertyName.Equals(nameof(DistanceNumber)))
+            {
+                SetDistanceData();
+            }
+
+            if (e.PropertyName.Equals(nameof(GpsNumber)))
+            {
+                SetGpsData();
+            }
+
+            if (e.PropertyName.Equals(nameof(GeometryNumber)))
+            {
+                SetGeometryData();
+            }
         }
 
         [ObservableProperty]
         private string _fileName;
 
+        #region gps
         [ObservableProperty]
         private string _gpsFileName;
 
@@ -43,16 +65,39 @@ namespace RoadExp.Viewer.ViewModels
         private ObservableCollection<GpsRmcDataViewModel> _gpsRmcDataCollection;
 
         [ObservableProperty]
+        private int _maximumGpsPageNumber = 1;
+
+        [ObservableProperty]
+        private int _gpsNumber = 0;
+        #endregion
+
+        #region distance page
+        [ObservableProperty]
         private string _distanceFileName;
 
         [ObservableProperty]
         private ObservableCollection<DistanceDataViewModel> _distanceDataCollection;
 
         [ObservableProperty]
+        private int _maximumDistancePageNumber = 1;
+
+        [ObservableProperty]
+        private int _distanceNumber = 0;
+        #endregion
+
+        #region geometry
+        [ObservableProperty]
         private string _geometryFileName;
 
         [ObservableProperty]
         private ObservableCollection<GeometryDataViewModel> _geometryDataCollection;
+
+        [ObservableProperty]
+        private int _maximumGeometryPageNumber = 1;
+
+        [ObservableProperty]
+        private int _geometryNumber = 0;
+        #endregion
 
         public async Task OpenFileCommand()
         {
@@ -128,19 +173,30 @@ namespace RoadExp.Viewer.ViewModels
         private void UpdateDistanceView()
         {
             if(_model.DistanceData == null) 
-                return;
+                return;            
 
             DistanceFileName = _model.DistanceData.Path;
 
             DistanceDataCollection.Clear();
 
+            SetDistanceData();            
+        }
+
+        private void SetDistanceData()
+        {
+            if (_model.DistanceData == null)
+                return;
+
             var data = _model.DistanceData.ProcessedData;
 
-            foreach (var entry in data)
-            {
-                var item = new DistanceDataViewModel(entry.Value);
-                DistanceDataCollection.Add(item);
-            }
+            MaximumDistancePageNumber = data.Count / _rowsOnPage + 1;
+
+            var items = data.Values
+                .Skip(_rowsOnPage * DistanceNumber)
+                .Take(_rowsOnPage)
+                .Select(item => new DistanceDataViewModel(item));
+
+            DistanceDataCollection = new ObservableCollection<DistanceDataViewModel>(items);
         }
 
         private void UpdateGpsView()
@@ -153,16 +209,33 @@ namespace RoadExp.Viewer.ViewModels
             GpsGgaDataCollection.Clear();
             GpsRmcDataCollection.Clear();
 
+            SetGpsData();            
+        }
+
+        private void SetGpsData()
+        {
+            if (_model.GpsData == null)
+                return;
+
             var data = _model.GpsData.ProcessedData;
 
-            foreach(var entry in data)
-            {
-                var itemGga = new GpsGgaDataViewModel(entry.Value.Index, entry.Value.Value.Gga);
-                GpsGgaDataCollection.Add(itemGga);
+            MaximumGpsPageNumber = data.Count / _rowsOnPage + 1;
 
-                var itemRmc = new GpsRmcDataViewModel(entry.Value.Index, entry.Value.Value.Rmc);
-                GpsRmcDataCollection.Add(itemRmc);
-            }
+            var ggaItems = data.Values
+                 .Select(x => (x.Index, x.Value.Gga))
+                 .Skip(_rowsOnPage * GpsNumber)
+                 .Take(_rowsOnPage)
+                 .Select(item => new GpsGgaDataViewModel(item.Index, item.Gga));
+
+            GpsGgaDataCollection = new ObservableCollection<GpsGgaDataViewModel>(ggaItems);
+
+            var rmcItems = data.Values
+                 .Select(x => (x.Index, x.Value.Rmc))
+                 .Skip(_rowsOnPage * GpsNumber)
+                 .Take(_rowsOnPage)
+                 .Select(item => new GpsRmcDataViewModel(item.Index, item.Rmc));
+
+            GpsRmcDataCollection = new ObservableCollection<GpsRmcDataViewModel>(rmcItems);            
         }
 
         private void UpdateGeometryView()
@@ -172,17 +245,26 @@ namespace RoadExp.Viewer.ViewModels
 
             GeometryFileName = _model.GeometryData.Path;
 
-            GeometryDataCollection.Clear();
+            SetGeometryData();            
+        }
+
+        private void SetGeometryData()
+        {
+            if(_model.GeometryData == null) 
+                return;
 
             var data = _model.GeometryData.ProcessedData;
 
-            foreach (var entry in data)
-            {
-                var item = new GeometryDataViewModel(entry.Value);
-                GeometryDataCollection.Add(item);
-            }
-        }
+            MaximumGeometryPageNumber = data.Count / _rowsOnPage + 1;
 
+            var items = data.Values
+                 .Select(x => x)
+                 .Skip(_rowsOnPage * GeometryNumber)
+                 .Take(_rowsOnPage)
+                 .Select(item => new GeometryDataViewModel(item));
+
+            GeometryDataCollection = new ObservableCollection<GeometryDataViewModel>(items);
+        }
 
         public void ExitCommand()
         {

@@ -28,31 +28,17 @@ namespace RoadExp.Measurements.Core
         /// <summary>
         /// Освобождает инициализированные ресурсы устройства и переводит его в исходное состояние.
         /// </summary>
-        void Deinitialize();
-
+        void Deinitialize();        
+      
         /// <summary>
-        /// Создает или открывает целевой файл, в который будет осуществляться потоковая запись собираемых данных.
+        /// Запускает процесс непрерывного сбора данных с устройства и их параллельной записи в файл.
         /// </summary>
-        /// <param name="fileName">Путь к файлу или имя создаваемого файла.</param>
-        /// <param name="fileHeader">Общий заголовок файла с метаданными измерительной сессии.</param>
-        /// <param name="metadata">Дополнительный массив байт с пользовательскими или системными метаданными.</param>
-        void OpenFile(string fileName, CommonFileHeader fileHeader, byte[] metadata);
-
-        /// <summary>
-        /// Запускает процесс непрерывного сбора данных с устройства и их параллельной записи в открытый файл.
-        /// </summary>
-        void StartAcquisition();
+        /// <param name="dataFileParams">Параметры файла данных</param>
+        void StartAcquisition(DataFileParameters dataFileParams);
 
         /// <summary>
         /// Останавливает процесс сбора данных и прекращает их запись в файл.
         /// </summary>
-        void StopAcquisition();
-
-        /// <summary>
-        /// Безопасно заменяет текущий низкоуровневый адаптер связи с физическим устройством на новый, 
-        /// предварительно останавливая сбор данных и деинициализируя старый адаптер.
-        /// </summary>
-        /// <param name="adapter">Новый экземпляр адаптера устройства <see cref="IDeviceAdapter"/>.</param>        
-        void UpdateAdapter(IDeviceAdapter adapter);
+        void StopAcquisition();        
     }
 }

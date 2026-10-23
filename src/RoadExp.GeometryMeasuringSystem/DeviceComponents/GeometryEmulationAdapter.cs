@@ -36,8 +36,7 @@ namespace RoadExp.GeometryMeasuringSystem
         }
         public ChannelReader<MeasurementBatch> DataChannel => _channel.Reader;
 
-        #region events
-        public event EventHandler<DataEventArgs<ByteArrayDataItem>> DataReceived;
+        #region events      
         public event EventHandler<Measurements.Core.MeasurementErrorEventArgs> ErrorOccurred;
         #endregion
 

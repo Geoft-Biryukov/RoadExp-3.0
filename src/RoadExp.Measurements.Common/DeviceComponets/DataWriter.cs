@@ -21,18 +21,24 @@ namespace RoadExp.Measurements.Common
     /// PacketHeader2 payload2
     /// ..................
     /// PacketHeaderN payloadN
-    /// 
+    /// IndexTableCount (4 bytes)
+    /// IndexTable
+    /// OffsetOfIndexTable (8 bytes)
+    /// SuccessSignature (4 bytes)
     /// </summary>    
     public class DataWriter : IDataWriter
     {
         #region Private Fields        
-        private readonly ILogger<DataWriter> _logger;
+        private readonly ILogger _logger;
 
         // Поля объявлены как volatile для безопасной передачи ссылок между 
         // управляющим потоком (OpenFile) и фоновым потоком записи (Write)
         private volatile FileStream? _stream;
         private volatile BinaryWriter? _writer;
+        private string _fileName;
         private int _disposed = 0;
+        private readonly List<long> _packetOffsets = new List<long>(1000);
+        private const uint _successFlag = 0xAABBCCDD;
         #endregion
 
         #region Constructor
@@ -66,6 +72,9 @@ namespace RoadExp.Measurements.Common
 
             WriteFileHeaderInternal(fileHeader, metadata);
             _writer.Flush();
+
+            _packetOffsets.Clear();
+            _fileName = fileName;
         }
 
         /// <summary>
@@ -73,10 +82,11 @@ namespace RoadExp.Measurements.Common
         /// МЕТОД НЕПОТОКОБЕЗОПАСЕН: должен вызываться строго из одного фонового потока воркера.
         /// </summary>
         public void Write(in MeasurementBatch batch)
-        {
-            var currentWriter = _writer;
-            if (currentWriter == null)
+        {            
+            if (_writer == null)
                 throw new InvalidOperationException("Файл не открыт. Сначала следует вызвать OpenFile.");
+
+            _packetOffsets.Add(_writer.BaseStream.Position);
 
             var array = batch.Data;
             PacketHeader packetHeader = CreatePacketHeader(batch.Index, array.Length);
@@ -86,8 +96,8 @@ namespace RoadExp.Measurements.Common
             ReadOnlySpan<byte> headerBytes = MemoryMarshal.AsBytes(headerSpan);
 
             // Прямая последовательная запись в буфер BinaryWriter
-            currentWriter.Write(headerBytes);
-            currentWriter.Write(array);
+            _writer.Write(headerBytes);
+            _writer.Write(array);
         }
 
         /// <summary>
@@ -96,6 +106,34 @@ namespace RoadExp.Measurements.Common
         public void Flush()
         {
             _writer?.Flush();
+        }
+
+        /// <summary>
+        /// Добавляет в файл таблицу индексов
+        /// и признак успешного (неаварийного) завершения файла
+        /// </summary>
+        public void FinalizeFile()
+        {            
+            if (_writer == null)
+                throw new InvalidOperationException("Файл не открыт. Сначала следует вызвать OpenFile.");
+
+            _logger.LogInformation("Выполняется запись таблицы индексов и признака успешного завершения в файл {FileName}", _fileName);
+
+            // 1. Запоминаем, где начинается таблица индексов
+            long indexTableOffset = _writer.BaseStream.Position;
+
+            // 2. Записываем таблицу индексов (количество элементов и сами смещения)
+            _writer.Write(_packetOffsets.Count);
+            foreach (long offset in _packetOffsets)
+            {
+                _writer.Write(offset);
+            }
+
+            // 3. Записываем смещение, где эта таблица РАСПОЛОЖЕНА
+            _writer.Write(indexTableOffset);
+
+            // 4. Записываем признак успешного завершения
+            _writer.Write(_successFlag);
         }
 
         /// <summary>
@@ -158,6 +196,7 @@ namespace RoadExp.Measurements.Common
             if (Volatile.Read(ref _disposed) == 1)
                 throw new ObjectDisposedException(GetType().FullName);
         }
+
         #endregion
     }
 }

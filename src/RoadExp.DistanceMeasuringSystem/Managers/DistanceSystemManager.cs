@@ -68,8 +68,7 @@ namespace RoadExp.DistanceMeasuringSystem.Managers
 
         public void StartAcquisition(string filePath)
         {
-            _settings.Path = filePath;
-            _system.OpenFile();
+            _settings.Path = filePath;            
 
             _logger.LogInformation("Старт записи в файл distance");
 
@@ -85,7 +84,7 @@ namespace RoadExp.DistanceMeasuringSystem.Managers
 
         public void UpdateParameters()
         {
-            _system.UpdateAdapter();
+            
         }
 
         public void Dispose()

@@ -2,7 +2,6 @@
 using RoadExp.Auxiliaries.Logger;
 using RoadExp.Measurements.Core;
 using RoadExp.Measurements.Data.GpsMeasuringSystem.Data;
-using RoadExp.Measurements.Data.GpsMeasuringSystem.Serializable;
 
 namespace RoadExp.GpsMeasuringSystem
 {
@@ -72,9 +71,7 @@ namespace RoadExp.GpsMeasuringSystem
             if(_system.IsActive)
             {
                 _system.Deinitialize();
-            }
-
-            _system.UpdateAdapter();
+            }            
         }
 
         public async Task InitializeAsync()
@@ -104,8 +101,6 @@ namespace RoadExp.GpsMeasuringSystem
         {            
             _settings.Path = filePath;
 
-            _system.OpenFile();
-
             _logger.UserInformation("Старт записи в файл gps");
             
             _system.StartAcquisition();
@@ -120,8 +115,9 @@ namespace RoadExp.GpsMeasuringSystem
 
         public void Dispose()
         {
+            _settingsManager.Save(_settings, _settingsFileName);
             _system.ErrorOccurred -= SystemErrorOccurred;
-            _system?.Dispose();
+            _system.Dispose();            
         }
         #endregion     
 

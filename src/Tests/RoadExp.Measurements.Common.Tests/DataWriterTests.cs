@@ -54,6 +54,8 @@ namespace RoadExp.Measurements.Common.Tests
                 writer.Write(item);
             }
 
+            writer.FinalizeFile();
+
             writer.Dispose();
 
             // Assert
@@ -65,6 +67,8 @@ namespace RoadExp.Measurements.Common.Tests
 
             Assert.Multiple(() =>
             {
+                Assert.That(result.successFlag, Is.EqualTo(0xAABBCCDD));
+
                 Assert.That(result.header.UniqueCode, Is.EqualTo(header.UniqueCode));
                 Assert.That(result.header.TimeUtc, Is.EqualTo(header.TimeUtc));
                 Assert.That(result.header.Version, Is.EqualTo(header.Version));
@@ -72,11 +76,11 @@ namespace RoadExp.Measurements.Common.Tests
                 Assert.That(result.header.MetadataSize, Is.EqualTo(header.MetadataSize));
 
                 Assert.That(result.data.Select(d => d.Value.Index).ToArray(), Is.EqualTo(source.Select(s => s.Index).ToArray()));
-                Assert.That(result.data.Select(d => d.Value.Value).ToArray(), Is.EqualTo(source.Select(s => s.Data).ToArray()));
+                Assert.That(result.data.Select(d => d.Value.Data).ToArray(), Is.EqualTo(source.Select(s => s.Data).ToArray()));
             });
         }
 
-        private static (CommonFileHeader header, KeyValuePair<PacketHeader, ByteArrayDataItem>[] data) ParseFile(string fileName)
+        private static (CommonFileHeader header, KeyValuePair<PacketHeader, MeasurementBatch>[] data, uint successFlag) ParseFile(string fileName)
         {
             var memoryStream = new MemoryStream();
             var stream = File.OpenRead(fileName);
@@ -88,16 +92,35 @@ namespace RoadExp.Measurements.Common.Tests
 
             var bytes = memoryStream.ToArray();
 
+            int length = bytes.Length;
+
+            // I. Читаем флаг успешного завершения и таблицу индексов
+            uint successFlag = BitConverter.ToUInt32(bytes, length - 4);
+
+            long indexTableOffset = BitConverter.ToInt64(bytes, length - 4 - 8);
+
+            int indexTableCount = BitConverter.ToInt32(bytes, (int)indexTableOffset);
+            var indexTable = new List<long>(indexTableCount);
+
+            for (int i = 0; i < indexTableCount; i++)
+            {
+                int index = (int)(indexTableOffset + 4 + i * sizeof(long));
+                long current = BitConverter.ToInt64(bytes, index);
+                indexTable.Add(current);
+            }
+
+            // II. Читаем заголовок файла
             var fileHeaderBytes = new byte[fileHeaderSize];
             Buffer.BlockCopy(bytes, 0, fileHeaderBytes, 0, fileHeaderSize);
 
             var fileHeader = StructConverter.ByteArrayToStruct<CommonFileHeader>(fileHeaderBytes);
 
-            var data = new Dictionary<PacketHeader, ByteArrayDataItem>();
+            // III. Читаем данные
+            var data = new Dictionary<PacketHeader, MeasurementBatch>();
 
             int pointer = fileHeaderSize;
 
-            while (pointer < bytes.Length)
+            while (pointer < indexTableOffset)
             {
                 var packetHeaderBytes = new byte[packetHeaderSize];
 
@@ -113,10 +136,10 @@ namespace RoadExp.Measurements.Common.Tests
 
                 var value = BitConverter.ToInt32(payload);
 
-                data.Add(packetHeader, new ByteArrayDataItem(packetHeader.Index, BitConverter.GetBytes(value)));
+                data.Add(packetHeader, new MeasurementBatch(packetHeader.Index, BitConverter.GetBytes(value)));
             }
 
-            return (fileHeader, data.ToArray());
+            return (fileHeader, data.ToArray(), successFlag);
         }
     }
 }

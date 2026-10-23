@@ -27,7 +27,8 @@ namespace RoadExp.GpsMeasuringSystem
         {
             if (settings.IsEmulationMode)
             {
-                return new GpsSimulationAdapter(_indexProvider, _converter, _loggerFactory.CreateLogger<GpsSimulationAdapter>());
+                var logger = _loggerFactory.CreateLogger<GpsSimulationAdapter>();
+                return new GpsSimulationAdapter(_indexProvider, _converter, logger);
             }
             else
             {
@@ -42,16 +43,18 @@ namespace RoadExp.GpsMeasuringSystem
 
                     var connector = new SerialPortWrapper(serialPort);
 
+                    var logger = _loggerFactory.CreateLogger<GpsSerialPortAdapter>();
+
                     retVal = new GpsSerialPortAdapter(
                         connector,
                         _indexProvider,
-                        _loggerFactory.CreateLogger<GpsSerialPortAdapter>());
+                        logger);
                 }
                 catch (Exception e)
                 {
                     if (e is ArgumentException || e is IOException)
                     {
-                        retVal = new ProxyDeviceAdapter("GPS-система: ошибка подключения");
+                        retVal = null;
                     }
                     else
                     {

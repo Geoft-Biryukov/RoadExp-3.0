@@ -1,38 +1,39 @@
 ﻿using Microsoft.Extensions.Logging;
 using RoadExp.DistanceMeasuringSystem.MeasuringSystem;
 using RoadExp.Measurements.Core;
+using RoadExp.Measurements.Core.DeviceComponents;
 using RoadExp.Measurements.Core.Serialization;
+using RoadExp.Measurements.Data;
 using RoadExp.Measurements.Data.DistanceMeasuringSystem;
-using System.Text;
 
 namespace RoadExp.DistanceMeasuringSystem
 {
     public class DistanceSystem : IMeasuringSystem<DistanceDataItem>
     {
-        #region private fields
-        private readonly IDeviceAdapterFactory<DistanceSystemSettings> _adapterFactory;
-        private readonly IDevice _device;
+        #region private fields        
+        private IDevice _device;        
+        private readonly IDevicesFactory<DistanceSystemSettings> _devicesFactory;
         private readonly DistanceSystemSettings _settings;
         private readonly IByteArrayParser<DistanceDataItem> _parser;
+        private readonly IFileHeaderFactory _headerFactory;
         private readonly ILogger<DistanceSystem> _logger;
         private CancellationTokenSource _listenerCts;
         private Task _listener;
+        private bool _isAcquisitionStarted = false;
         #endregion
 
-        public DistanceSystem(
-            IDeviceAdapterFactory<DistanceSystemSettings> adapterFactory,
-            IDevice device,
+        public DistanceSystem(            
+            IDevicesFactory<DistanceSystemSettings> devicesFactory,
             DistanceSystemSettings settings,
             IByteArrayParser<DistanceDataItem> parser,
+            IFileHeaderFactory headerFactory,
             ILogger<DistanceSystem> logger)
         {
-            _adapterFactory = adapterFactory ?? throw new ArgumentNullException(nameof(adapterFactory));
-            _device = device ?? throw new ArgumentNullException(nameof(device));
+            _devicesFactory = devicesFactory ?? throw new ArgumentNullException(nameof(devicesFactory));           
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _parser = parser;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            _device.ErrorOccurred += DeviceErrorOccurred;
+            _headerFactory = headerFactory ?? throw new ArgumentNullException(nameof(headerFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));            
 
             _logger.LogInformation("Система \"ДПП\" успешно создана");
         }
@@ -42,8 +43,7 @@ namespace RoadExp.DistanceMeasuringSystem
         public event EventHandler<MeasurementErrorEventArgs> ErrorOccurred;
         #endregion
 
-        #region properties
-        public DistanceDataItem HotValue { get; private set; }
+        #region properties        
 
         public bool IsActive { get; private set; } = false;
 
@@ -53,19 +53,51 @@ namespace RoadExp.DistanceMeasuringSystem
         #region public methods
         public async Task InitializeAsync()
         {
-            if (IsActive) return;
+            if (IsActive)
+            {
+                _logger.LogWarning("Попытка повторной инициализации ДПП системы");
+                return;
+            }
+
+            _logger.LogInformation("Выполняется инициализация ДПП системы");
+
+            var devices = _devicesFactory.CreateDevices(_settings);
+
+            if (devices.Count > 1)
+            {
+                throw new NotSupportedException("Датчик пройденного пути не поддерживает работу со многими Device'ами");
+            }
+
+            if (devices == null || devices.Count == 0)
+            {
+                _logger.LogError("Не удалось создать Device в ДПП системе");
+                ErrorOccurred?.Invoke(this, new("Не удалось инициализировать систему Датчик пройденного пути"));
+                return;
+            }
+
+            _device = devices.First();
 
             await _device.InitializeAsync();
+            _device.ErrorOccurred += DeviceErrorOccurred;
+
             IsActive = true;
 
             _listenerCts = new CancellationTokenSource();
 
             _listener = DataChannelListener(_listenerCts.Token);
+
+            _logger.LogInformation("Инициализация ДПП системы успешно выполнена");
         }
 
         public void Deinitialize()
         {
-            if (!IsActive) return;
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка деинициализации ДПП системы, инициализация которой не выполнялась");
+                return;
+            }
+
+            _logger.LogInformation("Выполняется деинициализация ДПП системы");
 
             if (_listenerCts != null)
             {
@@ -85,54 +117,69 @@ namespace RoadExp.DistanceMeasuringSystem
                     _listenerCts = null;
                     _listener = null;
                 }
-
             }
 
             _device?.Deinitialize();
             IsActive = false;
+
+            _logger.LogInformation("Деинициализация ДПП системы успешно выполнена");
         }
         public void Dispose()
         {
             Deinitialize();
-            Task.Run(async () => await _device.DisposeAsync());
-        }
 
-        public void OpenFile()
-        {
-            var fileHeader = CreateFileHeader(_settings);
-            var fileName = Path.Combine(_settings.Path, _settings.FileName);
-            _device.OpenFile(fileName, fileHeader, Array.Empty<byte>());
+            if(_device != null) 
+                Task.Run(async () => await _device.DisposeAsync());
         }
-
+      
         public void StartAcquisition()
         {
-            _device.StartAcquisition();
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка начать сбор данных ДПП системы, инициализация которой не выполнялась");
+                return;
+            }
+
+            if (_isAcquisitionStarted)
+            {
+                _logger.LogWarning("Повторная попытка начать сбор данных ДПП системы");
+                return;
+            }
+
+            var fileHeader = _headerFactory.CreateFileHeader(SystemIds.Distance.ToUint16(), 0);
+            var fileName = Path.Combine(_settings.Path, _settings.FileName);
+
+            var dataFileParams = new DataFileParameters(fileName, fileHeader, Array.Empty<byte>());
+
+            _device.StartAcquisition(dataFileParams);
+            _isAcquisitionStarted = true;
+
+            _logger.LogInformation("Сбор данных ДПП системы успешно запущен");
         }
 
         public void StopAcquisition()
         {
-            _device.StopAcquisition();
-        }
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка остановить сбор данных ДПП системы, инициализация которой не выполнялась");                
+                return;
+            }
 
-        public void UpdateAdapter()
-        {
-            var adapter = _adapterFactory.Create(_settings);
-            _device.UpdateAdapter(adapter);
+            if (!_isAcquisitionStarted)
+            {
+                _logger.LogWarning("Попытка остановить сбор данных ДПП системы, который не начинался");
+                return;
+            }
+
+            _device.StopAcquisition();
+            _isAcquisitionStarted = false;
+
+            _logger.LogInformation("Сбор данных ДПП системы успешно остановлен");
         }
+       
         #endregion
 
-        #region private methods
-        private CommonFileHeader CreateFileHeader(DistanceSystemSettings settings)
-        {
-            return new CommonFileHeader
-            {
-                UniqueCode = Encoding.ASCII.GetBytes("ROAD"),
-                Version = 1,
-                TimeUtc = DateTime.UtcNow.Ticks,
-                SystemId = 1,
-                MetadataSize = 0,
-            };
-        }
+        #region private methods       
 
         private async Task DataChannelListener(CancellationToken token)
         {
@@ -144,9 +191,7 @@ namespace RoadExp.DistanceMeasuringSystem
 
         private void DeviceDataProcess(in MeasurementBatch batch)
         {
-            var data = _parser.Parse(batch);
-
-            HotValue = data;
+            var data = _parser.Parse(batch);            
 
             var eventArgs = new DataEventArgs<DistanceDataItem>(data);
 

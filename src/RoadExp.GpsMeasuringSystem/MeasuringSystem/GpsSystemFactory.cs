@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using RoadExp.Measurements.Common;
 using RoadExp.Measurements.Core;
+using RoadExp.Measurements.Core.DeviceComponents;
+using RoadExp.Measurements.Core.Serialization;
 using RoadExp.Measurements.Data.GpsMeasuringSystem.Data;
 
 namespace RoadExp.GpsMeasuringSystem
@@ -10,18 +11,20 @@ namespace RoadExp.GpsMeasuringSystem
     /// </summary>
     public class GpsSystemFactory : IMeasuringSystemsFactory<GpsSystemSettings, GpsDataItem>
     {
-        private const int _bufferSize = 128;
-        private readonly IDeviceAdapterFactory<GpsSystemSettings> _adapterFactory;
+        private readonly IDevicesFactory<GpsSystemSettings> _devicesFactory;
         private readonly IByteArrayParser<GpsDataItem> _dataParser;
+        private readonly IFileHeaderFactory _headerFactory;
         private readonly ILoggerFactory _loggerFactory;
 
         public GpsSystemFactory(
-            IDeviceAdapterFactory<GpsSystemSettings> adapterFactory,
+            IDevicesFactory<GpsSystemSettings> devicesFactory,
             IByteArrayParser<GpsDataItem> dataParser,
+            IFileHeaderFactory headerFactory,
             ILoggerFactory loggerFactory)
         {
-            _adapterFactory = adapterFactory ?? throw new ArgumentNullException(nameof(adapterFactory));
+            _devicesFactory = devicesFactory ?? throw new ArgumentNullException(nameof(devicesFactory));
             _dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
+            _headerFactory = headerFactory ?? throw new ArgumentNullException(nameof(headerFactory));
             _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         }
 
@@ -33,23 +36,10 @@ namespace RoadExp.GpsMeasuringSystem
         /// <param name="settings">Настройки измерительной системы</param>
         /// <returns>Настроенная измерительная система gps</returns>
         public IMeasuringSystem<GpsDataItem> CreateMeasuringSystem(GpsSystemSettings settings)
-        {
-            var adapter = _adapterFactory.Create(settings);
+        {            
+            var logger = _loggerFactory.CreateLogger<GpsSystem>();
 
-            var storage = CreateDataStorage(settings);
-
-            var device = new GpsDevice(adapter, storage, _loggerFactory.CreateLogger<GpsDevice>());
-
-            return new GpsSystem(_adapterFactory, device, settings, _dataParser, _loggerFactory.CreateLogger<GpsSystem>());
-        }
-
-        private IDataStorage CreateDataStorage(GpsSystemSettings settings)
-        {
-            var writer = new DataWriter(_loggerFactory.CreateLogger<DataWriter>());
-            var storage = new DataStorage(_bufferSize, writer, _loggerFactory.CreateLogger<DataStorage>());
-
-            return storage;
-        }
+            return new GpsSystem(_devicesFactory, settings, _dataParser, _headerFactory, logger);
+        }       
     }
-
 }

@@ -6,14 +6,12 @@ namespace RoadExp.Measurements.Core
     /// Определяет контракт для компонента сохранения и потоковой записи измеренных данных в файл.
     /// </summary>
     public interface IDataStorage : IAsyncDisposable
-    {
+    {       
         /// <summary>
         /// Инициализирует (открывает) целевой файл для последующей записи данных.
         /// </summary>
-        /// <param name="fileName">Путь к файлу или имя создаваемого файла.</param>
-        /// <param name="fileHeader">Общий заголовок файла с метаданными измерительной сессии.</param>
-        /// <param name="metadata">Дополнительный массив байт с пользовательскими или системными метаданными.</param>
-        void OpenFile(string fileName, CommonFileHeader fileHeader, byte[] metadata);
+        /// <param name="dataFileParams">Параметры файла данных</param>
+        void OpenFile(DataFileParameters dataFileParams);
 
         /// <summary>
         /// Запускает фоновый процесс асинхронной записи поступающих данных на диск.

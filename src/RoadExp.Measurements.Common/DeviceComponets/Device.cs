@@ -125,17 +125,16 @@ namespace RoadExp.Measurements.Common
             {
                 _lock.Release();
             }
-        }
+        }       
 
-        public void OpenFile(string fileName, CommonFileHeader fileHeader, byte[] metadata)
+        public virtual void StartAcquisition(DataFileParameters dataFileParams)
         {
-            ThrowIfDisposed();
-            _storage.OpenFile(fileName, fileHeader, metadata);
-        }
+            ArgumentNullException.ThrowIfNull(dataFileParams);
 
-        public virtual void StartAcquisition()
-        {
             ThrowIfDisposed();
+            
+            _storage.OpenFile(dataFileParams);
+
             _storage.StartSaving();
         }
 
@@ -143,45 +142,7 @@ namespace RoadExp.Measurements.Common
         {
             ThrowIfDisposed();
             _storage.StopSaving();
-        }
-
-        public void UpdateAdapter(IDeviceAdapter adapter)
-        {
-            if (adapter == null) throw new ArgumentNullException(nameof(adapter));
-
-            _lock.Wait();
-            try
-            {
-                ThrowIfDisposed();
-
-                // 1. Отписываемся и деинициализируем старый адаптер
-                _adapter.ErrorOccurred -= OnErrorOccurred;
-
-                if (_isInitialized)
-                {
-                    _cts?.Cancel();
-                    _adapter.Deinitialize();
-                    try
-                    {
-                        _worker?.GetAwaiter().GetResult();
-                    }
-                    catch (OperationCanceledException) { }
-                    _worker = null;
-                    _isInitialized = false;
-                }
-
-                // Освобождаем ресурсы старого адаптера во избежание утечек памяти
-                _adapter.Dispose();
-
-                // 2. Устанавливаем новый адаптер
-                _adapter = adapter;
-                _adapter.ErrorOccurred += OnErrorOccurred;
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        }
+        }        
 
         /// <summary>
         /// Потокобезопасное асинхронное освобождение ресурсов устройства.

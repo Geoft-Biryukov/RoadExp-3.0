@@ -20,18 +20,16 @@ namespace RoadExp.Measurements.Common
 
         private volatile bool _savingEnabled;
         private int _disposed; // 0 = false, 1 = true
+        private const int _bufferCapacity = 128;
         #endregion
 
         #region Constructor
-        public DataStorage(int bufferCapacity, IDataWriter writer, ILogger logger)
-        {
-            if (bufferCapacity <= 0)
-                throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
-
+        public DataStorage(IDataWriter writer, ILogger<DataStorage> logger)
+        {           
             _writer = writer ?? throw new ArgumentNullException(nameof(writer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            var options = new BoundedChannelOptions(bufferCapacity)
+            var options = new BoundedChannelOptions(_bufferCapacity)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
                 SingleReader = true,                   // Читатель ВСЕГДА один (наш фоновый воркер)
@@ -43,11 +41,11 @@ namespace RoadExp.Measurements.Common
         }
         #endregion
 
-        #region Public Methods
+        #region Public Methods       
         /// <summary>
         /// Потокобезопасно открывает новый файл. Защищено семафором от параллельного закрытия устройства.
         /// </summary>
-        public void OpenFile(string fileName, CommonFileHeader fileHeader, byte[] metadata)
+        public void OpenFile(DataFileParameters dataFileParams)
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
 
@@ -62,9 +60,9 @@ namespace RoadExp.Measurements.Common
                 if (_savingEnabled)
                     throw new InvalidOperationException("Попытка поменять имя файла при включенной записи.");
 
-                _logger.LogInformation("Устанавливаем новое имя файла: {FileName}", fileName);
+                _logger.LogInformation("Устанавливаем новое имя файла: {FileName}", dataFileParams.FileName);
 
-                _writer.OpenFile(fileName, fileHeader, metadata);
+                _writer.OpenFile(dataFileParams.FileName, dataFileParams.FileHeader, dataFileParams.Metadata);
             }
             finally
             {
@@ -80,6 +78,7 @@ namespace RoadExp.Measurements.Common
         public void StopSaving()
         {
             _savingEnabled = false;
+            _writer.FinalizeFile();
             _writer.Flush();
         }
 

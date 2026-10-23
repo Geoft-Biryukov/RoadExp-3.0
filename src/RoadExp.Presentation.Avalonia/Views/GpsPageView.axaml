@@ -239,9 +239,7 @@
         <CheckBox IsChecked="{Binding IsEmulationMode}">Эмуляция</CheckBox>
     </StackPanel>
     <StackPanel Orientation="Horizontal"
-                DockPanel.Dock="Bottom">
-        <Button Command="{Binding Update}"
-                Margin="20 0 0 0">Update</Button>
+                DockPanel.Dock="Bottom">       
         <Button Command="{Binding Initialize}"
                 Margin="20 0 0 0">Initialize</Button>
         <Button Command="{Binding Start}"

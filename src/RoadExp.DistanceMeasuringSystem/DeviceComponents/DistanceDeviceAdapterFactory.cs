@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using RoadExp.DistanceMeasuringSystem.DataConverters;
 using RoadExp.DistanceMeasuringSystem.MeasuringSystem;
-using RoadExp.Measurements.Common;
 using RoadExp.Measurements.Core;
 
 namespace RoadExp.DistanceMeasuringSystem.DeviceComponents
@@ -41,7 +40,6 @@ namespace RoadExp.DistanceMeasuringSystem.DeviceComponents
                     .GetDevices(DeviceTypes.Hid, d => DeviceFilterHelper.MatchHidDevices(d, 1003, 8221, null, null))
                     .Cast<HidDevice>()
                     .FirstOrDefault();
-
                 
                 int inputBufferSize = 17;
 
@@ -50,15 +48,17 @@ namespace RoadExp.DistanceMeasuringSystem.DeviceComponents
 
                 if (!isOpened.HasValue || !isOpened.Value || stream == null)
                 {
-                    return new ProxyDeviceAdapter(errorMessage);
+                    return null;
                 }
+
+                var logger = _loggerFactory.CreateLogger<DistanceDeviceAdapter>();
 
                 return new DistanceDeviceAdapter(
                     stream,
                     inputBufferSize,
                     _indexProvider,
                     _byteArrayConverter,
-                    _loggerFactory.CreateLogger<DistanceDeviceAdapter>());
+                    logger);
             }
         
         }        

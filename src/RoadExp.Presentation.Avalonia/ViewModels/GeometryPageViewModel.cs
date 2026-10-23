@@ -86,12 +86,7 @@ namespace RoadExp.Presentation.Avalonia.ViewModels
             }
 
             _manager.IsEmulationMode = IsEmulationMode;
-        }
-
-        public async Task Update()
-        {
-            _manager.UpdateParameters();
-        }
+        }       
 
         public void UpdateUI()
         {

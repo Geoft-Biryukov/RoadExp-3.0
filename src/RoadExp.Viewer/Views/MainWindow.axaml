@@ -56,13 +56,29 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>                    
+                            <RowDefinition Height="Auto"/>   
+                            <RowDefinition Height="Auto"/>   
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"                                
                                    Margin="20"
                                    Text="{Binding DistanceFileName}"/>
-                        <DataGrid Grid.Column="0" Grid.Row="1"
+                        <StackPanel Grid.Column="0"
+                                    Grid.Row="1"
+                                    Orientation="Horizontal">
+                        <NumericUpDown 	   Name="DistancePaginator"
+										   Value="{Binding DistanceNumber}"
+										   Minimum="0"
+										   Maximum="{Binding MaximumDistancePageNumber}"
+										   FormatString="N0"
+										   Margin="20 0 20 0"										   
+                                           Width="250">
+						</NumericUpDown>  
+                        <TextBlock VerticalAlignment="Center" Margin="10 0 5 0">Всего страниц: </TextBlock>
+                        <TextBlock Text="{Binding MaximumDistancePageNumber}" VerticalAlignment="Center"/>
+
+                        </StackPanel>
+                        <DataGrid Grid.Column="0" Grid.Row="2"
                                       Margin="20"
                                       AutoGenerateColumns="True"
                                       ItemsSource="{Binding DistanceDataCollection}"
@@ -85,19 +101,33 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"                                
                                    Margin="20"
                                    Text="{Binding GpsFileName}"/>
-
-                        <TextBlock Grid.Row="1" Grid.Column="0"                                
+                        <StackPanel Orientation="Horizontal"
+                                    Grid.Column="0"
+                                    Grid.Row="1">
+                        <NumericUpDown     Name="GpsPaginator"
+										   Value="{Binding GpsNumber}"
+										   Minimum="0"
+										   Maximum="{Binding MaximumGpsPageNumber}"
+										   FormatString="N0"
+										   Margin="20 0 20 0"
+										   Width="250">
+							</NumericUpDown>
+                            <TextBlock VerticalAlignment="Center" Margin="10 0 5 0">Всего страниц: </TextBlock>
+                            <TextBlock Text="{Binding MaximumGpsPageNumber}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="2" Grid.Column="0"                                
                                    Margin="20">
                                    GGA Data
                         </TextBlock>
 
-                            <DataGrid Grid.Column="0" Grid.Row="2"
+                            <DataGrid Grid.Column="0" Grid.Row="3"
                                       Margin="20"
                                       AutoGenerateColumns="True"
                                       ItemsSource="{Binding GpsGgaDataCollection}"
@@ -110,12 +140,12 @@
 
                             </DataGrid>
                         
-                        <TextBlock Grid.Row="1" Grid.Column="1"                                
+                        <TextBlock Grid.Row="2" Grid.Column="1"                                
                                    Margin="20">
                                    RMC Data
                         </TextBlock>
 
-                            <DataGrid Grid.Column="1" Grid.Row="2"
+                            <DataGrid Grid.Column="1" Grid.Row="3"
                                       Margin="20"
                                       AutoGenerateColumns="True"
                                       ItemsSource="{Binding GpsRmcDataCollection}"
@@ -137,13 +167,28 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>                    
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"                                
                                    Margin="20"
                                    Text="{Binding GeometryFileName}"/>
-                        <DataGrid Grid.Column="0" Grid.Row="1"
+                        <StackPanel Orientation="Horizontal"
+                                    Grid.Column="0"
+                                    Grid.Row="1">
+                        <NumericUpDown	   Name="GeometryPaginator"
+										   Value="{Binding GeometryNumber}"
+										   Minimum="0"
+										   Maximum="{Binding MaximumGeometryPageNumber}"
+										   FormatString="N0"
+										   Margin="20 0 20 0"
+										   Width="250">
+							</NumericUpDown>
+                            <TextBlock VerticalAlignment="Center" Margin="10 0 5 0">Всего страниц: </TextBlock>
+                            <TextBlock Text="{Binding MaximumGeometryPageNumber}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <DataGrid Grid.Column="0" Grid.Row="2"
                                       Margin="20"
                                       AutoGenerateColumns="True"
                                       ItemsSource="{Binding GeometryDataCollection}"

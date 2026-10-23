@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RoadExp.Auxiliaries.Logger;
 using RoadExp.Infrastructure;
+using RoadExp.Measurements.Common;
 using RoadExp.Presentation.Avalonia.Models;
 using RoadExp.Presentation.Avalonia.ViewModels;
 using RoadExp.Presentation.Avalonia.Views;
@@ -38,9 +39,9 @@ namespace RoadExp.Presentation.Avalonia
                 var services = new ServiceCollection();
 
                 services.AddLogging();
-                services.AddSerilog();
-                               
-                services.AddMeasuringSystemManagers();
+                services.AddSerilog();              
+
+                services.AddMeasuringSystemManagers(_loggerFactory);
                 services.AddMeasuringSystemModels();
                
                 services.AddViewModels();              
@@ -90,7 +91,9 @@ namespace RoadExp.Presentation.Avalonia
             // писать логи в свой файл
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()            
-            .WriteTo.File("logs/app-debug.txt", rollingInterval: RollingInterval.Day)            
+            .WriteTo.File("logs/app-debug.txt",
+                                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
+                                rollingInterval: RollingInterval.Day)            
             .WriteTo.Logger(lc => lc
                 .Filter.ByIncludingOnly(Matching.WithProperty("ToUser"))
                 .WriteTo.RoadExpConsole())

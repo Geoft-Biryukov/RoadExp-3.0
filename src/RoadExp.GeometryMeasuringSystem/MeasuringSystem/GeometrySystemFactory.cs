@@ -1,27 +1,32 @@
 ﻿using Microsoft.Extensions.Logging;
-using RoadExp.Measurements.Common;
+using RoadExp.GeometryMeasuringSystem.DeviceComponents;
+using RoadExp.GeometryMeasuringSystem.MeasuringSystem;
 using RoadExp.Measurements.Core;
-using RoadExp.Measurements.Data.GeometryMeasuringSystem;
+using RoadExp.Measurements.Core.DeviceComponents;
+using RoadExp.Measurements.Core.Serialization;
 using RoadExp.Measurements.Data.GeometryMeasuringSystem.Data;
 
 namespace RoadExp.GeometryMeasuringSystem
 {
     public class GeometrySystemFactory : IMeasuringSystemsFactory<GeometrySystemSettings, GeometryDataItem>
     {
-        private const int _bufferSize = 128;
-        private readonly ILogger _logger;
-        private readonly IDeviceAdapterFactory<GeometrySystemSettings> _adapterFactory;
+        private readonly IDevicesFactory<GeometrySystemSettings> _devicesFactory;
         private readonly IByteArrayParser<GeometryDataItem> _parser;
+        private readonly IFileHeaderFactory _headerFactory;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger _logger;
 
         public GeometrySystemFactory(
-            IDeviceAdapterFactory<GeometrySystemSettings> adapterFactory,
+            IDevicesFactory<GeometrySystemSettings> devicesFactory,
             IByteArrayParser<GeometryDataItem> parser,
+            IFileHeaderFactory headerFactory,
             ILoggerFactory loggerFactory)
         {
-            _adapterFactory = adapterFactory;
-            _parser = parser;
-            _loggerFactory = loggerFactory;
+            _devicesFactory = devicesFactory ?? throw new ArgumentNullException(nameof(devicesFactory));
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+            _headerFactory = headerFactory ?? throw new ArgumentNullException(nameof(headerFactory));
+            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+
             _logger = _loggerFactory.CreateLogger<GeometrySystemFactory>();
         }
 
@@ -34,23 +39,13 @@ namespace RoadExp.GeometryMeasuringSystem
         /// <returns>Настроенная измерительная система геометрия</returns>
         public IMeasuringSystem<GeometryDataItem> CreateMeasuringSystem(GeometrySystemSettings settings)
         {
-            _logger.LogInformation("Создается и настраивается система Геометрия");
+            _logger.LogInformation("Создается и настраивается система Геометрия");                                    
 
-            var adapter = _adapterFactory.Create(settings);
+            var logger = _loggerFactory.CreateLogger<GeometrySystem>();
 
-            var storage = CreateDataStorage(settings);
-            var device = new GeometryDevice(adapter, storage, _loggerFactory.CreateLogger<GeometryDevice>());
-
-            return new GeometrySystem(_adapterFactory, device, settings, _parser, _loggerFactory.CreateLogger<GeometrySystem>());
+            return new GeometrySystem(_devicesFactory, settings, _parser, _headerFactory, logger);
         }
 
-        private IDataStorage CreateDataStorage(GeometrySystemSettings settings)
-        {
-            var writer = new DataWriter(_loggerFactory.CreateLogger<DataWriter>());
-            var storage = new DataStorage(_bufferSize, writer, _loggerFactory.CreateLogger<DataStorage>());
-
-            return storage;
-        }
     }
 
 }

@@ -31,8 +31,11 @@ namespace RoadExp.Viewer.Reader
             CommonFileHeader header = default;
             SortedList<long, MeasurementBatch> data = new SortedList<long, MeasurementBatch>();
             byte[] metadata;
+            bool isComplete = false;
+            List<long> indexTable;
 
-            // 1. Открываем поток с флагом асинхронности
+            // Открываем поток с флагом асинхронности
+            
             using (var stream = new FileStream(
                 fileName,
                 FileMode.Open,
@@ -41,7 +44,54 @@ namespace RoadExp.Viewer.Reader
                 bufferSize: 4096,
                 useAsync: true)) // Включаем асинхронный I/O
             {
+                // 1. Чтение footer'а
+              
+                var successFlagPosition = stream.Seek(-4, SeekOrigin.End);
+                stream.Position = successFlagPosition;
+                int successFlagSize = sizeof(uint);
+                var successFlagBytes = new byte[successFlagSize];
+                if (await ReadExactBytesAsync(stream, successFlagBytes) == successFlagSize)
+                {
+                    uint successFlag = BitConverter.ToUInt32(successFlagBytes, 0);
+                    isComplete = successFlag == 0xAABBCCDD;
+                }                    
+
+                if(isComplete)
+                {
+                    // Читаем таблицу индексов
+                    var indexTableOffsetPosition = stream.Seek(-4 - 8, SeekOrigin.End);
+                    stream.Position = indexTableOffsetPosition;
+                    int indexTableOffsetSize = sizeof(long);
+                    var indexTableOffsetBytes = new byte[indexTableOffsetSize];
+                    await ReadExactBytesAsync(stream, indexTableOffsetBytes);
+                    long indexTableOffset = BitConverter.ToInt64(indexTableOffsetBytes, 0);
+
+                    stream.Position = indexTableOffset;
+                    int indexTableCountSize = sizeof(int);
+                    var indexTableCountBytes = new byte[indexTableCountSize];
+                    await ReadExactBytesAsync(stream, indexTableCountBytes);
+                    int indexTableCount = BitConverter.ToInt32(indexTableCountBytes, 0);
+
+                    indexTable = new List<long>(indexTableCount);
+
+                    int indexTableItemSize = sizeof(long);
+                    var indexTableItemBytes = new byte[indexTableItemSize];
+
+                    for (int i = 0; i < indexTableCount; i++)
+                    {
+                        await ReadExactBytesAsync(stream, indexTableItemBytes);
+                        long indexTableItem = BitConverter.ToInt64(indexTableItemBytes, 0);
+                        indexTable.Add(indexTableItem);
+                    }
+                }
+                else
+                {
+                    indexTable = new List<long>();
+                }
+
                 // 2. Асинхронное чтение заголовка файла
+
+                stream.Position = 0;
                 var headerBytes = new byte[_fileHeaderSize];
                 if (await ReadExactBytesAsync(stream, headerBytes) < _fileHeaderSize)
                     return Result.Fail("Не удалось прочитать заголовок файла");
@@ -92,7 +142,8 @@ namespace RoadExp.Viewer.Reader
                 }
             }
 
-            var fileData = new MeasurementFileData(header, metadata, data);
+            var fileData = new MeasurementFileData(header, metadata, data) { IsComplete = isComplete };
+
             return Result.Ok(fileData);
         }
 

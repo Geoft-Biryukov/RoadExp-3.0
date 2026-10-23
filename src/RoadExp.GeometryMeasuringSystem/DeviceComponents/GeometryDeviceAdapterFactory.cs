@@ -21,7 +21,8 @@ namespace RoadExp.GeometryMeasuringSystem
         {
             if (settings.IsEmulationMode)
             {
-                return new GeometryEmulationAdapter(_indexProvider, _loggerFactory.CreateLogger<GeometryEmulationAdapter>());
+                var logger = _loggerFactory.CreateLogger<GeometryEmulationAdapter>();
+                return new GeometryEmulationAdapter(_indexProvider, logger);
             }
             else
             {
@@ -39,17 +40,18 @@ namespace RoadExp.GeometryMeasuringSystem
                     };
 
                     var wrapper = new SerialPortWrapper(serialPort);
-                    
+                    var logger = _loggerFactory.CreateLogger<GeometrySerialPortAdapter>();
+
                     adapter = new GeometrySerialPortAdapter(
                         wrapper,
                         _indexProvider, 
-                        _loggerFactory.CreateLogger<GeometrySerialPortAdapter>());
+                        logger);
                 }
                 catch (Exception e)
                 {
                     if(e is ArgumentException || e is IOException)
                     {
-                        adapter = new ProxyDeviceAdapter("Геометрия: ошибка подключения");
+                        adapter = null;
                     }
                 }
                 return adapter;

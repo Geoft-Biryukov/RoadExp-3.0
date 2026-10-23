@@ -1,39 +1,40 @@
 ﻿using Microsoft.Extensions.Logging;
 using RoadExp.Measurements.Core;
+using RoadExp.Measurements.Core.DeviceComponents;
 using RoadExp.Measurements.Core.Serialization;
+using RoadExp.Measurements.Data;
 using RoadExp.Measurements.Data.GeometryMeasuringSystem.Data;
-using System.Text;
 
-namespace RoadExp.GeometryMeasuringSystem
+namespace RoadExp.GeometryMeasuringSystem.MeasuringSystem
 {
     public class GeometrySystem : IMeasuringSystem<GeometryDataItem>
     {
-        #region private fields
-        private readonly IDeviceAdapterFactory<GeometrySystemSettings> _adapterFactory;
-        private readonly IDevice _device;
+        #region private fields        
+        private IDevice _device;
+        private readonly IDevicesFactory<GeometrySystemSettings> _devicesFactory;
         private readonly GeometrySystemSettings _settings;
         private readonly IByteArrayParser<GeometryDataItem> _parser;
+        private readonly IFileHeaderFactory _headerFactory;
         private readonly ILogger<GeometrySystem> _logger;
         private CancellationTokenSource _listenerCts;
         private Task _listener;
+        private bool _isAcquisitionStarted = false;
         #endregion
 
         public GeometrySystem(
-            IDeviceAdapterFactory<GeometrySystemSettings> adapterFactory,
-            IDevice device,
+            IDevicesFactory<GeometrySystemSettings> devicesFactory,            
             GeometrySystemSettings settings,
             IByteArrayParser<GeometryDataItem> parser,
+            IFileHeaderFactory headerFactory,
             ILogger<GeometrySystem> logger)
         {
-            _adapterFactory = adapterFactory ?? throw new ArgumentNullException(nameof(adapterFactory));
-            _device = device ?? throw new ArgumentNullException(nameof(device));
+            _devicesFactory = devicesFactory ?? throw new ArgumentNullException(nameof(devicesFactory));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _parser = parser;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+            _headerFactory = headerFactory ?? throw new ArgumentNullException(nameof(headerFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));            
 
-            _device.ErrorOccurred += DeviceErrorOccurred;
-
-            _logger.LogInformation("Система \"Геометрия\" успешно создана");
+            _logger.LogInformation("Система Геометрия успешно создана");
         }
 
         #region events
@@ -41,8 +42,7 @@ namespace RoadExp.GeometryMeasuringSystem
         public event EventHandler<MeasurementErrorEventArgs> ErrorOccurred;
         #endregion
 
-        #region properties
-        public GeometryDataItem HotValue { get; private set; }
+        #region properties       
 
         public bool IsActive { get; private set; } = false;
 
@@ -52,19 +52,51 @@ namespace RoadExp.GeometryMeasuringSystem
         #region public methods
         public async Task InitializeAsync()
         {
-            if (IsActive) return;
+            if (IsActive)
+            {
+                _logger.LogWarning("Попытка повторной инициализации системы Геометрия");
+                return;
+            }
+
+            _logger.LogInformation("Выполняется инициализация системы Геометрия");
+
+            var devices = _devicesFactory.CreateDevices(_settings);
+
+            if (devices.Count > 1)
+            {
+                throw new NotSupportedException("Система Геометрия не поддерживает работу со многими Device'ами");
+            }
+
+            if (devices == null || devices.Count == 0)
+            {
+                _logger.LogError("Не удалось создать Device в системе Геометрия");
+                ErrorOccurred?.Invoke(this, new("Не удалось инициализировать систему Датчик пройденного пути"));
+                return;
+            }
+
+            _device = devices.First();
 
             await _device.InitializeAsync();
+            _device.ErrorOccurred += DeviceErrorOccurred;
+
             IsActive = true;
 
             _listenerCts = new CancellationTokenSource();
 
             _listener = DataChannelListener(_listenerCts.Token);
+
+            _logger.LogInformation("Инициализация системы Геометрия успешно выполнена");
         }
 
         public void Deinitialize()
         {
-            if (!IsActive) return;
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка деинициализации системы Геометрия, инициализация которой не выполнялась");
+                return;
+            }
+
+            _logger.LogInformation("Выполняется деинициализация системы Геометрия");
 
             if (_listenerCts != null)
             {
@@ -84,55 +116,70 @@ namespace RoadExp.GeometryMeasuringSystem
                     _listenerCts = null;
                     _listener = null;
                 }
-
             }
 
             _device?.Deinitialize();
             IsActive = false;
+
+            _logger.LogInformation("Деинициализация системы Геометрия успешно выполнена");
         }
         public void Dispose()
         {
             Deinitialize();
-            Task.Run(async () => await _device.DisposeAsync());
-        }
 
-        public void OpenFile()
-        {
-            var fileHeader = CreateFileHeader(_settings);
-            var fileName = Path.Combine(_settings.Path, _settings.FileName);
-            _device.OpenFile(fileName, fileHeader, Array.Empty<byte>());
+            if(_device  != null) 
+                Task.Run(async () => await _device.DisposeAsync());
         }
-
+       
         public void StartAcquisition()
         {
-            _device.StartAcquisition();
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка начать сбор данных системы Геометрия, инициализация которой не выполнялась");
+                return;
+            }
+
+            if (_isAcquisitionStarted)
+            {
+                _logger.LogWarning("Повторная попытка начать сбор данных системы Геометрия");
+                return;
+            }
+
+            var fileHeader = _headerFactory.CreateFileHeader(SystemIds.Geometry.ToUint16(), 0);
+            var fileName = Path.Combine(_settings.Path, _settings.FileName);
+
+            var dataFileParams = new DataFileParameters(fileName, fileHeader, Array.Empty<byte>());
+
+            _device.StartAcquisition(dataFileParams);
+            _isAcquisitionStarted = true;
+
+            _logger.LogInformation("Сбор данных системы Геометрия успешно запущен");
         }
 
         public void StopAcquisition()
         {
-            _device.StopAcquisition();
-        }
+            if (!IsActive)
+            {
+                _logger.LogWarning("Попытка остановить сбор данных системы Геометрия, инициализация которой не выполнялась");
+                return;
+            }
 
-        public void UpdateAdapter()
-        {
-            var adapter = _adapterFactory.Create(_settings);
-            _device.UpdateAdapter(adapter);
+            if (!_isAcquisitionStarted)
+            {
+                _logger.LogWarning("Попытка остановить сбор данных системы Геометрия, который не начинался");
+                return;
+            }
+
+            _device.StopAcquisition();
+            _isAcquisitionStarted = false;
+
+            _logger.LogInformation("Сбор данных системы Геометрия успешно остановлен");
         }
+       
         #endregion
 
         #region private methods
-        private CommonFileHeader CreateFileHeader(GeometrySystemSettings settings)
-        {
-            return new CommonFileHeader
-            {
-                UniqueCode = Encoding.ASCII.GetBytes("ROAD"),
-                Version = 1,
-                TimeUtc = DateTime.UtcNow.Ticks,
-                SystemId = 3,
-                MetadataSize = 0,
-            };
-        }
-
+        
         private async Task DataChannelListener(CancellationToken token)
         {
             await foreach (var item in _device.DataChannel.ReadAllAsync(token).ConfigureAwait(false))
@@ -143,9 +190,7 @@ namespace RoadExp.GeometryMeasuringSystem
 
         private void DeviceDataProcess(in MeasurementBatch batch)
         {            
-            var data = _parser.Parse(batch);
-
-            HotValue = data;
+            var data = _parser.Parse(batch);           
 
             var eventArgs = new DataEventArgs<GeometryDataItem>(data);
 

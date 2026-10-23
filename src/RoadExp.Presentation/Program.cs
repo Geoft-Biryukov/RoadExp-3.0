@@ -1,11 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RoadExp.Auxiliaries.Logger;
+using RoadExp.Infrastructure;
 using RoadExp.Presentation;
 using Serilog;
 using Serilog.Filters;
-using RoadExp.Infrastructure;
 
 internal class Program
 {
@@ -22,9 +23,16 @@ internal class Program
 
         ConfigureSerilog();
 
+        //Создаем стандартную фабрику логов и связываем её с Serilog
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            // Метод расширения AddSerilog связывает Microsoft-логирование с Serilog
+            builder.AddSerilog(dispose: true);
+        });
+
         builder.Services.AddSerilog();
 
-        builder.Services.AddMeasuringSystemManagers();
+        builder.Services.AddMeasuringSystemManagers(loggerFactory);
        
         builder.Services.AddHostedService<Worker>();
 
